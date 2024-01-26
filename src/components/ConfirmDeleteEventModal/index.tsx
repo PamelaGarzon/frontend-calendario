@@ -1,4 +1,5 @@
 import { httpClient } from "../../lib/axios";
+import { removeModalBackdrop } from "../../utils";
 
 interface Event {
   userId: string;
@@ -8,9 +9,16 @@ interface Event {
 interface Props {
   event?: Event;
   updateList: () => void;
+  onCloseDeleteEventModal: () => void;
+  isOpen: boolean;
 }
 
-export function ConfirmDeleteEventModal({ event, updateList }: Props) {
+export function ConfirmDeleteEventModal({
+  event,
+  updateList,
+  isOpen,
+  onCloseDeleteEventModal,
+}: Props) {
   async function handleDeleteEvent() {
     await httpClient
       .delete(`event/${event?.id ? event.id : ""}`, {
@@ -20,11 +28,15 @@ export function ConfirmDeleteEventModal({ event, updateList }: Props) {
       })
       .then(() => {
         updateList();
+        onCloseDeleteEventModal();
+        removeModalBackdrop();
       })
       .catch((err) => console.log(err));
   }
+
   return (
     <div
+      style={{ display: isOpen ? "block" : "none" }}
       className="modal fade"
       id="confirmDeleteEventModal"
       tabIndex={-1}
@@ -61,9 +73,9 @@ export function ConfirmDeleteEventModal({ event, updateList }: Props) {
               Fechar
             </button>
             <button
-              onClick={() => handleDeleteEvent()}
               type="button"
               className="btn btn-outline-danger"
+              onClick={handleDeleteEvent}
             >
               Remover
             </button>

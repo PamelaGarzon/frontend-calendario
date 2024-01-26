@@ -1,19 +1,39 @@
+import { useEffect, useState } from "react";
+
 interface Props {
-  dateFilter: string;
-  setDateFilter: (date: string) => void;
+  filterParams: { [key: string]: string };
+  setFilterParams: (date: { [key: string]: string }) => void;
   updateList: () => void;
 }
 
 export function FilterCalendarEvents({
-  dateFilter,
-  setDateFilter,
+  filterParams,
+  setFilterParams,
   updateList,
 }: Props) {
+  const [dateFilter, setDateFilter] = useState("");
+
+  const handleClearFilter = () => {
+    setFilterParams({ ...filterParams, startDateTime: "" });
+    setDateFilter("");
+  };
+
+  const handleFilter = () => {
+    setFilterParams({ ...filterParams, startDateTime: dateFilter });
+    updateList();
+  };
+
+  useEffect(() => {
+    if (filterParams.startDateTime === "" && dateFilter === "") {
+      updateList();
+    }
+  }, [filterParams, dateFilter]);
+
   return (
     <>
       <h6 className="mx-5 mt-5">Filtros:</h6>
       <form className="d-flex align-items-center flex-wrap gap-4 mx-5 px-4 py-2 border border-dark-subtle">
-        <div className="mb-3">
+        <div className=" d-flex flex-column w-100 mb-3">
           <label htmlFor="initial-date" className="form-label">
             Data
           </label>
@@ -26,13 +46,21 @@ export function FilterCalendarEvents({
           />
         </div>
 
-        <div>
+        <div className="d-flex align-items-center gap-3 flex-wrap">
           <button
             type="button"
             className="mt-3 btn btn-outline-primary"
-            onClick={updateList}
+            onClick={handleFilter}
           >
             Filtrar
+          </button>
+
+          <button
+            type="button"
+            onClick={handleClearFilter}
+            className="mt-3 btn btn-outline-secondary"
+          >
+            Limpar Filtro
           </button>
         </div>
       </form>

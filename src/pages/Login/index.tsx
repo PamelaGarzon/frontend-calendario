@@ -1,31 +1,15 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
 import { CalendarSVG } from "../../assets/Calendar";
-import { Navbar } from "../../components/Navbar";
-import { httpClient } from "../../lib/axios";
+import { Navbar } from "../../components";
 import "./styles.modules.css";
-import * as zod from "zod";
-import { useContext } from "react";
-import { AuthUserContext } from "../../context";
-import { toast } from "react-toastify";
 
-interface LoginForm {
-  email: string;
-  password: string;
-}
-const LoginFormValidationSchema = zod.object({
-  email: zod.string().email("Informe um e-mail válido."),
-  password: zod
-    .string()
-    .min(6, "Mínimo de 6 dígitos.")
-    .max(20, "Máximo de 16 dígitos"),
-});
+import { LoginFormValidationSchema } from "./utils";
+import { LoginForm } from "../../types/Login";
+import { useLogin } from "../../hooks";
+import { Link } from "react-router-dom";
 
 export function Login() {
-  const navigate = useNavigate();
-  const { setUserId } = useContext(AuthUserContext);
-
   const { register, handleSubmit, formState } = useForm<LoginForm>({
     resolver: zodResolver(LoginFormValidationSchema),
     defaultValues: {
@@ -34,48 +18,15 @@ export function Login() {
     },
   });
 
-  function renderErrorMessage(errorMessage: string) {
-    toast(errorMessage, {
-      autoClose: 5000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
-      progress: undefined,
-      theme: "light",
-      type: "error",
-      position: "top-right",
-      style: {
-        borderBottomColor: "red",
-      },
-    });
-  }
+  const { handleSignIn, isLoading } = useLogin();
 
   async function handleLogin(data: LoginForm) {
-    await httpClient
-      .post("user/auth", {
-        email: data.email,
-        password: data.password,
-      })
-      .then((res) => {
-        setUserId(res?.data?.userId);
-        localStorage.setItem("token-user", res.data.access_token);
-        localStorage.setItem("user-id", res.data.userId);
-
-        // executa uma ação depois de x segundos 1000 milisegundos = 1s no caso 2s
-        setTimeout(() => {
-          navigate("/");
-        }, 2000);
-      })
-      .catch((err) => {
-        if (err?.response?.data && err?.response?.status === 401) {
-          renderErrorMessage(err.response.data);
-        }
-        console.error(err);
-      });
+    handleSignIn(data);
   }
+
   const errors = formState.errors;
 
+  const isBtnLoginDisabled = Object.keys(errors).length > 0 || isLoading;
   return (
     <div
       className="container-fluid p-0 overflow-hidden"
@@ -94,44 +45,63 @@ export function Login() {
           <h3 className="mt-4">Login</h3>
 
           <div className="mb-3 w-100">
-            <label htmlFor="exampleFormControlInput1" className="form-label">
+            <label htmlFor="emailInput" className="form-label">
               Email
             </label>
             <input
               {...register("email")}
               type="email"
               className="form-control"
-              id="exampleFormControlInput1"
-              placeholder="name@example.com"
+              id="emailInput"
+              placeholder="name@email.com"
+              aria-describedby="emailError"
             />
             {errors.email && (
-              <div className="invalid-feedback">{errors.email.message}</div>
+              <div id="emailError" className="invalid-feedback d-block">
+                {errors.email.message}
+              </div>
             )}
           </div>
 
           <div className="mb-3 w-100">
-            <label htmlFor="inputPassword5" className="form-label">
+            <label htmlFor="inputPassword" className="form-label">
               Senha
             </label>
             <input
               {...register("password")}
               type="password"
-              id="inputPassword5"
+              id="inputPassword"
               className="form-control"
-              aria-describedby="passwordHelpBlock"
+              aria-describedby="passwordError"
             />
             {errors.password && (
-              <div className="invalid-feedback">{errors.password.message}</div>
+              <div id="passwordError" className="invalid-feedback d-block">
+                {errors.password.message}
+              </div>
             )}
           </div>
 
           <button
             className="btn btn-dark w-50 mb-4"
-            disabled={Object.keys(errors).length > 0}
+            disabled={isBtnLoginDisabled}
             type="submit"
           >
-            Login
+            {isLoading && (
+              <span
+                className="spinner-border spinner-border-sm"
+                role="status"
+                aria-hidden="true"
+              />
+            )}
+            {isLoading ? "" : "Login"}
           </button>
+
+          <div className="mb-3 d-flex justify-content-center align-items-center w-100 flex-wrap">
+            <label className="form-label mb-0 me-2">
+              Ainda não tem uma conta?
+            </label>
+            <Link to="/register">Registre-se</Link>
+          </div>
         </form>
 
         <CalendarSVG

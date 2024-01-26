@@ -6,52 +6,45 @@ import {
 } from "../../components";
 import { EventModal } from "../../components/EventModal";
 import { useContext, useEffect, useState } from "react";
-import { httpClient } from "../../lib/axios";
+import { useListEvents } from "../../hooks/useListEvents";
 import { AuthUserContext } from "../../context";
-
-interface Params {
-  userId: string;
-  startDateTime?: string;
-}
+import { openModal } from "../../utils";
 
 export function Calendar() {
-  const { userId, setUserId } = useContext(AuthUserContext);
-  const [listEvents, setListEvents] = useState();
+  const { isLoading, onListEvents, listEvents } = useListEvents();
+  const [isOpenCreateEventModal, setIsOpenCreateEventModal] = useState(false);
 
-  const [dateFilter, setDateFilter] = useState("");
+  const { setUserId } = useContext(AuthUserContext);
 
-  const params = {
-    userId: userId,
-  } as Params;
-
-  if (dateFilter) {
-    params.startDateTime = dateFilter;
-  }
-
-  async function handleListEvents() {
-    await httpClient
-      .get("event/list", {
-        params: params,
-      })
-      .then((res) => {
-        setListEvents(res.data);
-        console.log(res);
-      })
-      .catch((err) => console.log(err));
-  }
+  const [filterParams, setFilterParams] = useState<{ [key: string]: string }>({
+    userId: "",
+    startDateTime: "",
+  });
 
   useEffect(() => {
     const currentUserId = localStorage.getItem("user-id") || "";
     setUserId(currentUserId);
-  }, []);
+
+    console.log(currentUserId);
+    setFilterParams((prevParams) => ({
+      ...prevParams,
+      userId: currentUserId,
+    }));
+  }, [setUserId]);
+
+  function handleListEvents() {
+    onListEvents(filterParams);
+  }
 
   useEffect(() => {
-    if (userId) {
+    if (Object.keys(filterParams).length) {
       handleListEvents();
     }
-  }, [userId]);
+  }, [filterParams]);
 
-  if (!listEvents) return "...Loading";
+  function onCloseCreateEventModal() {
+    setIsOpenCreateEventModal(false);
+  }
 
   return (
     <div className="container-fluid p-0 overflow-hidden">
@@ -60,8 +53,11 @@ export function Calendar() {
       <div className="d-flex justify-content-end px-5 mt-4">
         <button
           className=" d-flex gap-2 btn btn-lg btn-outline-primary align-items-center"
-          data-bs-toggle="modal"
-          data-bs-target="#createEventModal"
+          id="btn-create-event"
+          onClick={() => {
+            setIsOpenCreateEventModal(true);
+            openModal("createEventModal");
+          }}
         >
           <Plus size={16} />
           Adicionar Evento
@@ -72,19 +68,32 @@ export function Calendar() {
         <div>
           <FilterCalendarEvents
             updateList={handleListEvents}
-            setDateFilter={setDateFilter}
-            dateFilter={dateFilter}
+            setFilterParams={setFilterParams}
+            filterParams={filterParams}
           />
         </div>
-        <div className="mt-4 w-100 px-5">
-          <TableCalendarEvents
-            updateList={handleListEvents}
-            listEvents={listEvents}
-          />
-        </div>
+        {isLoading ? (
+          <div className="text-center mt-5">
+            <div className="spinner-border spinner-grow-lg" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-4 w-100 px-5">
+            <TableCalendarEvents
+              updateList={handleListEvents}
+              listEvents={listEvents}
+            />
+          </div>
+        )}
       </div>
 
-      <EventModal id="createEventModal" updateList={handleListEvents} />
+      <EventModal
+        id="createEventModal"
+        updateList={handleListEvents}
+        onCloseEventModal={onCloseCreateEventModal}
+        isOpen={isOpenCreateEventModal}
+      />
     </div>
   );
 }

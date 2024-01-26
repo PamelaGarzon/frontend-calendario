@@ -25,11 +25,6 @@ export function AuthUserProvider({ children }: AuthProviderProps) {
     setUserId,
   };
 
-  useEffect(() => {
-    const currentUserId = localStorage.getItem("user-id") || "";
-    setUserId(currentUserId);
-  }, []);
-
   return (
     <AuthUserContext.Provider value={contextValue}>
       {children}
